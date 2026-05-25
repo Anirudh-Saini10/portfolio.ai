@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const ttsRes = await fetch(
-      "https://api-inference.huggingface.co/models/hexgrad/Kokoro-82M",
+      "https://router.huggingface.co/fal-ai/kokoro/v1/audio/speech",
       {
         method: "POST",
         headers: {
@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: text,
-          parameters: { voice: VOICE },
+          model: "hexgrad/Kokoro-82M",
+          input: text,
+          voice: VOICE,
+          response_format: "mp3",
         }),
       }
     );
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const audio = await ttsRes.arrayBuffer();
-    const contentType = ttsRes.headers.get("content-type") ?? "audio/flac";
+    const contentType = ttsRes.headers.get("content-type") ?? "audio/mpeg";
 
     return new NextResponse(audio, {
       status: 200,

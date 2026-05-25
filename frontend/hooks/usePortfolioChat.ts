@@ -33,7 +33,10 @@ export function usePortfolioChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) throw new Error(`TTS failed (${res.status})`);
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(`TTS failed (${res.status}): ${JSON.stringify(detail)}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Aniruddha Saini · Portfolio.AI",
   description:
     "Interactive AI-powered portfolio. Ask anything about Aniruddha's projects — answered live by a RAG pipeline over project docs.",
-  metadataBase: new URL("https://portfolio.ai"),
+  metadataBase: new URL("https://ai-portfolio-anirudh.vercel.app"),
   openGraph: {
     title: "Aniruddha Saini · Portfolio.AI",
     description:

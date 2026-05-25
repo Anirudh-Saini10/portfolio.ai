@@ -2,7 +2,7 @@
 title: Portfolio AI Backend
 emoji: 🤖
 colorFrom: purple
-colorTo: cyan
+colorTo: blue
 sdk: docker
 pinned: false
 ---

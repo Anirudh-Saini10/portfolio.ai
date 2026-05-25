@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const modelId = process.env.ELEVENLABS_MODEL_ID || "eleven_turbo_v2";
+const VOICE = process.env.KOKORO_VOICE || "af_heart";
 
-  if (!apiKey || !voiceId) {
+export async function POST(req: NextRequest) {
+  const hfToken = process.env.HUGGINGFACE_API_KEY;
+
+  if (!hfToken) {
     return NextResponse.json(
-      { error: "ElevenLabs not configured on server" },
+      { error: "Kokoro TTS not configured on server" },
       { status: 503 }
     );
   }
@@ -27,21 +27,16 @@ export async function POST(req: NextRequest) {
   }
 
   const ttsRes = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    "https://api-inference.huggingface.co/models/hexgrad/Kokoro-82M",
     {
       method: "POST",
       headers: {
-        "xi-api-key": apiKey,
+        Authorization: `Bearer ${hfToken}`,
         "Content-Type": "application/json",
-        Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text,
-        model_id: modelId,
-        voice_settings: {
-          stability: 0.45,
-          similarity_boost: 0.75,
-        },
+        inputs: text,
+        parameters: { voice: VOICE },
       }),
     }
   );
@@ -49,16 +44,18 @@ export async function POST(req: NextRequest) {
   if (!ttsRes.ok) {
     const detail = await ttsRes.text().catch(() => "");
     return NextResponse.json(
-      { error: "ElevenLabs request failed", detail },
+      { error: "Kokoro TTS request failed", detail },
       { status: 502 }
     );
   }
 
   const audio = await ttsRes.arrayBuffer();
+  const contentType = ttsRes.headers.get("content-type") ?? "audio/flac";
+
   return new NextResponse(audio, {
     status: 200,
     headers: {
-      "Content-Type": "audio/mpeg",
+      "Content-Type": contentType,
       "Cache-Control": "no-store",
     },
   });

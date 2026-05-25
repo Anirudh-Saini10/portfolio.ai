@@ -1,0 +1,32 @@
+# Node
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Env
+.env
+.env.local
+.env.*.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local artifacts
+portfolio_spec_extracted.txt
+*.log

@@ -243,7 +243,7 @@ NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
 **Aniruddha Saini**
 - Email: aniruddhasaini@gmail.com
 - GitHub: [github.com/Anirudh-Saini10](https://github.com/Anirudh-Saini10)
-- LinkedIn: [linkedin.com/in/aniruddhasaini]https://linkedin.com/in/anirudh-saini1
+- LinkedIn: https://linkedin.com/in/anirudh-saini1
 - Portfolio: [ai-portfolio-anirudh.vercel.app](https://ai-portfolio-anirudh.vercel.app)
 
 ---

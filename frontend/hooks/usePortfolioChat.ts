@@ -79,8 +79,6 @@ export function usePortfolioChat() {
         setAnswer(data.answer);
         setSources(data.sources || []);
         setIsLoading(false);
-        // Speak in parallel — text is already visible
-        void speak(data.answer);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Something went wrong";
         setError(msg);
@@ -98,6 +96,7 @@ export function usePortfolioChat() {
     isLoading,
     error,
     ask,
+    speak,
     stopAudio,
   };
 }

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Square, Sparkles } from "lucide-react";
+import { ArrowRight, Square, Sparkles, Volume2 } from "lucide-react";
 import { usePortfolioChat } from "@/hooks/usePortfolioChat";
 import { SUGGESTED_QUESTIONS } from "@/lib/projects";
 import { Avatar } from "./Avatar";
@@ -10,7 +10,7 @@ import { SectionHeader } from "./SectionHeader";
 
 export function ChatConsole() {
   const [query, setQuery] = useState("");
-  const { answer, sources, avatarState, isLoading, error, ask, stopAudio } =
+  const { answer, sources, avatarState, isLoading, error, ask, speak, stopAudio } =
     usePortfolioChat();
 
   // Allow project cards to populate the input via a custom event
@@ -170,6 +170,14 @@ export function ChatConsole() {
                   <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-zinc-100">
                     {answer}
                   </p>
+                  {avatarState !== "speaking" && (
+                    <button
+                      onClick={() => speak(answer)}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-cyber-border px-3 py-1 font-mono text-[11px] text-zinc-500 transition hover:border-cyber-cyan/60 hover:text-cyber-cyan"
+                    >
+                      <Volume2 className="h-3 w-3" /> hear it
+                    </button>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div

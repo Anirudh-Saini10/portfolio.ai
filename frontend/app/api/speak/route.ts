@@ -26,37 +26,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Empty text" }, { status: 400 });
   }
 
-  const ttsRes = await fetch(
-    "https://api-inference.huggingface.co/models/hexgrad/Kokoro-82M",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${hfToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: text,
-        parameters: { voice: VOICE },
-      }),
-    }
-  );
-
-  if (!ttsRes.ok) {
-    const detail = await ttsRes.text().catch(() => "");
-    return NextResponse.json(
-      { error: "Kokoro TTS request failed", detail },
-      { status: 502 }
+  try {
+    const ttsRes = await fetch(
+      "https://api-inference.huggingface.co/models/hexgrad/Kokoro-82M",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${hfToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: text,
+          parameters: { voice: VOICE },
+        }),
+      }
     );
+
+    if (!ttsRes.ok) {
+      const detail = await ttsRes.text().catch(() => "");
+      return NextResponse.json(
+        { error: "Kokoro TTS request failed", detail },
+        { status: 502 }
+      );
+    }
+
+    const audio = await ttsRes.arrayBuffer();
+    const contentType = ttsRes.headers.get("content-type") ?? "audio/flac";
+
+    return new NextResponse(audio, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown TTS error";
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
-
-  const audio = await ttsRes.arrayBuffer();
-  const contentType = ttsRes.headers.get("content-type") ?? "audio/flac";
-
-  return new NextResponse(audio, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": "no-store",
-    },
-  });
 }

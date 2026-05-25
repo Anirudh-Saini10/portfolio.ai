@@ -46,7 +46,7 @@ export function ChatConsole() {
             </span>
           </>
         }
-        description="Real RAG over project docs · Groq llama-3.3-70b · ElevenLabs voice."
+        description="Real RAG over project docs · Groq llama-3.1-8b · Kokoro voice."
       />
 
       <div className="grid gap-8 lg:grid-cols-[320px_1fr] lg:items-start">

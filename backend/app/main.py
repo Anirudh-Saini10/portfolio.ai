@@ -197,7 +197,7 @@ async def ask(body: Query) -> AskResponse:
         completion = await loop.run_in_executor(
             _executor,
             lambda: groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.1-8b-instant",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {body.query}"},

@@ -1,3 +1,12 @@
+---
+title: Portfolio AI Backend
+emoji: 🤖
+colorFrom: purple
+colorTo: cyan
+sdk: docker
+pinned: false
+---
+
 # Portfolio.AI Backend (FastAPI)
 
 RAG service: embeds the visitor's question, retrieves top-K chunks from Supabase pgvector, and asks Gemini 1.5 Flash for a concise answer.

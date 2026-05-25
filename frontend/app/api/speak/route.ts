@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const VOICE = process.env.KOKORO_VOICE || "af_heart";
+const VOICE = process.env.KOKORO_VOICE || "am_adam";
 
 export async function POST(req: NextRequest) {
   const hfToken = process.env.HUGGINGFACE_API_KEY;

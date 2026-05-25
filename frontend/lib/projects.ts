@@ -34,7 +34,6 @@ export const FEATURED_PROJECT: Project = {
   tags: ["YOLOv8", "MediaPipe", "FastAPI", "OpenCV", "WebSockets", "React"],
   liveUrl: "https://anirudhsaini-proctorvision.hf.space/",
   category: "CV",
-  year: "2025",
   status: "featured",
 };
 
@@ -50,7 +49,6 @@ export const CORE_PROJECTS: Project[] = [
     tags: ["React 18", "Supabase", "PostgreSQL", "RLS", "TypeScript"],
     liveUrl: "https://cadence-growth.vercel.app/",
     category: "Full-Stack",
-    year: "2025",
   },
   {
     slug: "atsense",
@@ -61,7 +59,6 @@ export const CORE_PROJECTS: Project[] = [
     tags: ["Gemini", "Prompt Eng.", "Streamlit", "Python"],
     liveUrl: "https://atsense-analyse.vercel.app/",
     category: "LLM",
-    year: "2025",
   },
   {
     slug: "spamsentry",
@@ -72,7 +69,6 @@ export const CORE_PROJECTS: Project[] = [
     tags: ["PyTorch", "DistilBERT", "HuggingFace", "Streamlit"],
     liveUrl: "https://spamsentry-scam-detector.streamlit.app/",
     category: "NLP",
-    year: "2024",
   },
 ];
 

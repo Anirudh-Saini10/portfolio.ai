@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 export type AvatarState = "idle" | "thinking" | "speaking" | "error";
 
@@ -15,43 +15,51 @@ export function usePortfolioChat() {
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     setAvatarState("idle");
   }, []);
 
-  const speak = useCallback(async (text: string) => {
-    try {
-      const res = await fetch("/api/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        throw new Error(`TTS failed (${res.status}): ${JSON.stringify(detail)}`);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      setAvatarState("speaking");
-      audio.onended = () => {
-        setAvatarState("idle");
-        URL.revokeObjectURL(url);
-      };
-      await audio.play();
-    } catch (e) {
-      // TTS is non-fatal — text answer is already shown
-      setAvatarState("idle");
-      console.warn("TTS error:", e);
-    }
+  const speak = useCallback((text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    // Split into sentences to avoid Chrome's ~200-char cutoff bug
+    const chunks = text.match(/[^.!?\n]+[.!?\n]*/g) ?? [text];
+    let i = 0;
+
+    const next = () => {
+      if (i >= chunks.length) { setAvatarState("idle"); return; }
+      const utt = new SpeechSynthesisUtterance(chunks[i++].trim());
+      utt.rate = 0.93;
+      utt.pitch = 0.85;
+      utt.lang = "en-US";
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = [
+        "Google UK English Male",
+        "Microsoft David - English (United States)",
+        "Daniel",
+        "Alex",
+      ];
+      const voice =
+        preferred.reduce<SpeechSynthesisVoice | null>(
+          (found, name) => found ?? voices.find((v) => v.name === name) ?? null,
+          null
+        ) ??
+        voices.find(
+          (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("male")
+        ) ??
+        null;
+      if (voice) utt.voice = voice;
+
+      utt.onend = next;
+      utt.onerror = () => setAvatarState("idle");
+      window.speechSynthesis.speak(utt);
+    };
+
+    setAvatarState("speaking");
+    next();
   }, []);
 
   const ask = useCallback(

@@ -7,9 +7,9 @@ const MODEL = process.env.KOKORO_MODEL || "fal-ai/kokoro/american-english";
 const MAX_TEXT_LENGTH = 2500;
 
 export async function POST(req: NextRequest) {
-  const hfToken = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+  const falToken = process.env.FAL_KEY || process.env.KOKORO_API_KEY;
 
-  if (!hfToken) {
+  if (!falToken) {
     return NextResponse.json(
       { error: "Kokoro TTS not configured on server" },
       { status: 503 }
@@ -30,18 +30,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const ttsRes = await fetch(
-      "https://router.huggingface.co/fal-ai/kokoro/v1/audio/speech",
+      `https://fal.run/${MODEL}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${hfToken}`,
+          Authorization: `Key ${falToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: MODEL,
-          input: text,
+          prompt: text,
           voice: VOICE,
-          response_format: "wav",
+          speed: 1,
         }),
       }
     );
@@ -54,8 +53,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const audio = await ttsRes.arrayBuffer();
-    const contentType = ttsRes.headers.get("content-type") ?? "audio/mpeg";
+    const payload = await ttsRes.json();
+    const audioUrl = payload?.audio?.url;
+    if (!audioUrl) {
+      return NextResponse.json(
+        { error: "Kokoro TTS response did not include audio" },
+        { status: 502 }
+      );
+    }
+
+    const audioRes = await fetch(audioUrl);
+    if (!audioRes.ok) {
+      return NextResponse.json(
+        { error: "Kokoro audio download failed" },
+        { status: 502 }
+      );
+    }
+
+    const audio = await audioRes.arrayBuffer();
+    const contentType = audioRes.headers.get("content-type") ?? "audio/wav";
 
     return new NextResponse(audio, {
       status: 200,

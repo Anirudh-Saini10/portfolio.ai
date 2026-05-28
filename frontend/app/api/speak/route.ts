@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const VOICE = process.env.KOKORO_VOICE || "am_adam";
+const MAX_TEXT_LENGTH = 2500;
 
 export async function POST(req: NextRequest) {
-  const hfToken = process.env.HUGGINGFACE_API_KEY;
+  const hfToken = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
 
   if (!hfToken) {
     return NextResponse.json(
@@ -17,12 +18,12 @@ export async function POST(req: NextRequest) {
   let text = "";
   try {
     const body = await req.json();
-    text = (body?.text || "").toString().slice(0, 2500);
+    text = (body?.text || "").toString().trim().slice(0, MAX_TEXT_LENGTH);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!text.trim()) {
+  if (!text) {
     return NextResponse.json({ error: "Empty text" }, { status: 400 });
   }
 

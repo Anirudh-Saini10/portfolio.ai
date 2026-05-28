@@ -9,12 +9,27 @@ type AskOptions = {
   projectFilter?: string | null;
 };
 
-// Singleton variables to cache the TTS model across hook re-renders
-let kokoroInstance: any = null;
-let kokoroInitPromise: Promise<any> | null = null;
 let currentAudioElement: HTMLAudioElement | null = null;
-let currentAudioSource: AudioBufferSourceNode | null = null;
-let globalAudioCtx: AudioContext | null = null;
+
+const speakWithBrowserVoice = (text: string, onEnd: () => void) => {
+  if (!window.speechSynthesis) {
+    onEnd();
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice =
+    voices.find((voice) => /en/i.test(voice.lang) && /male|david|mark|daniel/i.test(voice.name)) ||
+    voices.find((voice) => /en/i.test(voice.lang));
+
+  if (preferredVoice) utterance.voice = preferredVoice;
+  utterance.rate = 0.95;
+  utterance.pitch = 0.9;
+  utterance.onend = onEnd;
+  utterance.onerror = onEnd;
+  window.speechSynthesis.speak(utterance);
+};
 
 export function usePortfolioChat() {
   const [answer, setAnswer] = useState<string>("");
@@ -32,12 +47,6 @@ export function usePortfolioChat() {
       currentAudioElement = null;
     }
 
-    if (currentAudioSource) {
-      currentAudioSource.stop();
-      currentAudioSource.disconnect();
-      currentAudioSource = null;
-    }
-
     setAvatarState("idle");
   }, []);
 
@@ -46,82 +55,37 @@ export function usePortfolioChat() {
     
     stopAudio();
 
-    // Initialize or resume AudioContext synchronously on user gesture to avoid browser autoplay policy blocks
-    if (!globalAudioCtx) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      globalAudioCtx = new AudioContextClass();
-    }
-    if (globalAudioCtx.state === "suspended") {
-      globalAudioCtx.resume();
-    }
-
     const startSpeak = async () => {
       try {
         setAvatarState("speaking");
-        
-        // Dynamically import to avoid SSR errors
-        const { KokoroTTS } = await import("kokoro-js");
-        
-        // Ensure transformers.js doesn't try to use node modules or local paths in browser
-        const transformers = await import("@huggingface/transformers");
-        if (transformers && transformers.env) {
-          transformers.env.allowLocalModels = false;
+
+        const response = await fetch("/api/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Kokoro TTS request failed (${response.status})`);
         }
 
-        if (!kokoroInstance) {
-          if (!kokoroInitPromise) {
-            kokoroInitPromise = KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-              dtype: "q8",
-              device: "wasm",
-            });
-          }
-          kokoroInstance = await kokoroInitPromise;
-        }
-
-        // Generate audio with requested male voice
-        const audioOutput = await kokoroInstance.generate(String(text), { voice: "am_adam" });
-        
-        // Handle playback based on the output format from kokoro-js
-        if (audioOutput.toBlob) {
-          const blob = await audioOutput.toBlob("audio/wav");
-          const url = URL.createObjectURL(blob);
-          currentAudioElement = new Audio(url);
-          currentAudioElement.onended = () => {
-            setAvatarState("idle");
-            URL.revokeObjectURL(url);
-          };
-          currentAudioElement.onerror = () => setAvatarState("idle");
-          await currentAudioElement.play();
-        } else if (audioOutput.audio) {
-          // Fallback to Web Audio API if it returns raw Float32Array
-          const sampleRate = audioOutput.sampling_rate || 24000;
-          const buffer = globalAudioCtx!.createBuffer(1, audioOutput.audio.length, sampleRate);
-          buffer.getChannelData(0).set(audioOutput.audio);
-          
-          currentAudioSource = globalAudioCtx!.createBufferSource();
-          currentAudioSource.buffer = buffer;
-          currentAudioSource.connect(globalAudioCtx!.destination);
-          currentAudioSource.onended = () => setAvatarState("idle");
-          currentAudioSource.start(0);
-        } else if (audioOutput.data) {
-          // Fallback to basic Blob if it has data property
-          const blob = new Blob([audioOutput.data], { type: "audio/wav" });
-          const url = URL.createObjectURL(blob);
-          currentAudioElement = new Audio(url);
-          currentAudioElement.onended = () => {
-            setAvatarState("idle");
-            URL.revokeObjectURL(url);
-          };
-          currentAudioElement.onerror = () => setAvatarState("idle");
-          await currentAudioElement.play();
-        } else {
-          console.error("Unknown Kokoro audio output format", audioOutput);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        currentAudioElement = new Audio(url);
+        currentAudioElement.onended = () => {
           setAvatarState("idle");
-        }
-
+          URL.revokeObjectURL(url);
+          currentAudioElement = null;
+        };
+        currentAudioElement.onerror = () => {
+          setAvatarState("idle");
+          URL.revokeObjectURL(url);
+          currentAudioElement = null;
+        };
+        await currentAudioElement.play();
       } catch (err) {
-        console.error("TTS Generation Error:", err);
-        setAvatarState("idle");
+        console.warn("Kokoro TTS unavailable, falling back to browser speech:", err);
+        speakWithBrowserVoice(text, () => setAvatarState("idle"));
       }
     };
 

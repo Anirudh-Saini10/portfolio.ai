@@ -6,14 +6,23 @@ const VOICE = process.env.KOKORO_VOICE || "am_adam";
 const MODEL = process.env.KOKORO_MODEL || "fal-ai/kokoro/american-english";
 const MAX_TEXT_LENGTH = 2500;
 
+const fallbackResponse = (reason: string) =>
+  NextResponse.json(
+    { fallback: "browser", reason },
+    {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+        "X-TTS-Fallback": "browser",
+      },
+    }
+  );
+
 export async function POST(req: NextRequest) {
   const falToken = process.env.FAL_KEY || process.env.KOKORO_API_KEY;
 
   if (!falToken) {
-    return NextResponse.json(
-      { error: "Kokoro TTS not configured on server" },
-      { status: 503 }
-    );
+    return fallbackResponse("Kokoro TTS not configured on server");
   }
 
   let text = "";
@@ -47,27 +56,18 @@ export async function POST(req: NextRequest) {
 
     if (!ttsRes.ok) {
       const detail = await ttsRes.text().catch(() => "");
-      return NextResponse.json(
-        { error: "Kokoro TTS request failed", detail },
-        { status: 502 }
-      );
+      return fallbackResponse(detail || "Kokoro TTS request failed");
     }
 
     const payload = await ttsRes.json();
     const audioUrl = payload?.audio?.url;
     if (!audioUrl) {
-      return NextResponse.json(
-        { error: "Kokoro TTS response did not include audio" },
-        { status: 502 }
-      );
+      return fallbackResponse("Kokoro TTS response did not include audio");
     }
 
     const audioRes = await fetch(audioUrl);
     if (!audioRes.ok) {
-      return NextResponse.json(
-        { error: "Kokoro audio download failed" },
-        { status: 502 }
-      );
+      return fallbackResponse("Kokoro audio download failed");
     }
 
     const audio = await audioRes.arrayBuffer();
@@ -82,6 +82,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown TTS error";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return fallbackResponse(msg);
   }
 }

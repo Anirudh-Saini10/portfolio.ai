@@ -65,8 +65,19 @@ export function usePortfolioChat() {
           body: JSON.stringify({ text }),
         });
 
+        if (response.headers.get("x-tts-fallback") === "browser") {
+          speakWithBrowserVoice(text, () => setAvatarState("idle"));
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`Kokoro TTS request failed (${response.status})`);
+        }
+
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.startsWith("audio/")) {
+          speakWithBrowserVoice(text, () => setAvatarState("idle"));
+          return;
         }
 
         const blob = await response.blob();

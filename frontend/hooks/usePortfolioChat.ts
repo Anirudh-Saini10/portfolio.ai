@@ -14,6 +14,7 @@ let kokoroInstance: any = null;
 let kokoroInitPromise: Promise<any> | null = null;
 let currentAudioElement: HTMLAudioElement | null = null;
 let currentAudioSource: AudioBufferSourceNode | null = null;
+let globalAudioCtx: AudioContext | null = null;
 
 export function usePortfolioChat() {
   const [answer, setAnswer] = useState<string>("");
@@ -41,9 +42,18 @@ export function usePortfolioChat() {
   }, []);
 
   const speak = useCallback((text: string) => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !text) return;
     
     stopAudio();
+
+    // Initialize or resume AudioContext synchronously on user gesture to avoid browser autoplay policy blocks
+    if (!globalAudioCtx) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      globalAudioCtx = new AudioContextClass();
+    }
+    if (globalAudioCtx.state === "suspended") {
+      globalAudioCtx.resume();
+    }
 
     const startSpeak = async () => {
       try {
@@ -51,6 +61,12 @@ export function usePortfolioChat() {
         
         // Dynamically import to avoid SSR errors
         const { KokoroTTS } = await import("kokoro-js");
+        
+        // Ensure transformers.js doesn't try to use node modules or local paths in browser
+        const transformers = await import("@huggingface/transformers");
+        if (transformers && transformers.env) {
+          transformers.env.allowLocalModels = false;
+        }
 
         if (!kokoroInstance) {
           if (!kokoroInitPromise) {
@@ -63,7 +79,7 @@ export function usePortfolioChat() {
         }
 
         // Generate audio with requested male voice
-        const audioOutput = await kokoroInstance.generate(text, { voice: "am_adam" });
+        const audioOutput = await kokoroInstance.generate(String(text), { voice: "am_adam" });
         
         // Handle playback based on the output format from kokoro-js
         if (audioOutput.toBlob) {
@@ -78,15 +94,13 @@ export function usePortfolioChat() {
           await currentAudioElement.play();
         } else if (audioOutput.audio) {
           // Fallback to Web Audio API if it returns raw Float32Array
-          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-          const audioCtx = new AudioContextClass();
           const sampleRate = audioOutput.sampling_rate || 24000;
-          const buffer = audioCtx.createBuffer(1, audioOutput.audio.length, sampleRate);
+          const buffer = globalAudioCtx!.createBuffer(1, audioOutput.audio.length, sampleRate);
           buffer.getChannelData(0).set(audioOutput.audio);
           
-          currentAudioSource = audioCtx.createBufferSource();
+          currentAudioSource = globalAudioCtx!.createBufferSource();
           currentAudioSource.buffer = buffer;
-          currentAudioSource.connect(audioCtx.destination);
+          currentAudioSource.connect(globalAudioCtx!.destination);
           currentAudioSource.onended = () => setAvatarState("idle");
           currentAudioSource.start(0);
         } else if (audioOutput.data) {

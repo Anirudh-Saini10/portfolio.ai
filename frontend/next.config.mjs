@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: ["onnxruntime-node"],
-  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

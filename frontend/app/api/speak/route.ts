@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const VOICE = process.env.KOKORO_VOICE || "am_adam";
+const MODEL = process.env.KOKORO_MODEL || "fal-ai/kokoro/american-english";
 const MAX_TEXT_LENGTH = 2500;
 
 export async function POST(req: NextRequest) {
@@ -37,10 +38,10 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "hexgrad/Kokoro-82M",
+          model: MODEL,
           input: text,
           voice: VOICE,
-          response_format: "mp3",
+          response_format: "wav",
         }),
       }
     );
